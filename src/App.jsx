@@ -259,7 +259,6 @@ export default function AnimatedSlidesFromText() {
     setBodySize(Number(get("bodySize", "1")) || 1);
     setIdx(Math.max(0, Math.min(Number(get("idx", "0")) || 0, total - 1)));
     setUseAI(get("useAI", "false") === "true");
-    setAiKey(localStorage.getItem("slides:aiKey") ?? "");
     setAiModel(get("aiModel", "gpt-4o-mini"));
     setAiTone(get("aiTone", "inspiring"));
     setAiLength(get("aiLength", "medium"));
@@ -292,11 +291,10 @@ export default function AnimatedSlidesFromText() {
     localStorage.setItem("slides:titleSize", String(titleSize));
     localStorage.setItem("slides:bodySize", String(bodySize));
     localStorage.setItem("slides:useAI", String(useAI));
-    if (aiKey) localStorage.setItem("slides:aiKey", aiKey);
     localStorage.setItem("slides:aiModel", aiModel);
     localStorage.setItem("slides:aiTone", aiTone);
     localStorage.setItem("slides:aiLength", aiLength);
-  }, [theme, accent, anim, aspect, duration, maxChars, titleSize, bodySize, idx, useAI, aiKey, aiModel, aiTone, aiLength]);
+  }, [theme, accent, anim, aspect, duration, maxChars, titleSize, bodySize, idx, useAI, aiModel, aiTone, aiLength]);
 
   const bgClass = theme === "dark" ? "bg-neutral-900 text-neutral-100" : "bg-white text-neutral-900";
   const cardClass = theme === "dark" ? "bg-neutral-800" : "bg-neutral-100";
