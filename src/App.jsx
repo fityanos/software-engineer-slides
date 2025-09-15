@@ -65,9 +65,8 @@ export default function AnimatedSlidesFromText() {
   const [exporting, setExporting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [slidesExpanded, setSlidesExpanded] = useState(false);
-  const [useAI, setUseAI] = useState(true);
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
-  const [aiTone, setAiTone] = useState("inspiring");
+  const [aiTone, setAiTone] = useState("professional");
   const [aiLength, setAiLength] = useState("medium");
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
@@ -206,7 +205,6 @@ export default function AnimatedSlidesFromText() {
     setTitleSize(Number(get("titleSize", "1")) || 1);
     setBodySize(Number(get("bodySize", "1")) || 1);
     setIdx(Math.max(0, Math.min(Number(get("idx", "0")) || 0, total - 1)));
-    setUseAI(get("useAI", "false") === "true");
     setAiModel(get("aiModel", "gpt-4o-mini"));
     setAiTone(get("aiTone", "inspiring"));
     setAiLength(get("aiLength", "medium"));
@@ -225,8 +223,6 @@ export default function AnimatedSlidesFromText() {
     if (titleSize !== 1) params.set("titleSize", String(titleSize));
     if (bodySize !== 1) params.set("bodySize", String(bodySize));
     if (idx !== 0) params.set("idx", String(idx));
-    // Only set useAI parameter when it's false (non-default)
-    if (useAI === false) params.set("useAI", "false");
     if (aiModel !== "gpt-4o-mini") params.set("aiModel", aiModel);
     if (aiTone !== "inspiring") params.set("aiTone", aiTone);
     if (aiLength !== "medium") params.set("aiLength", aiLength);
@@ -241,11 +237,10 @@ export default function AnimatedSlidesFromText() {
     localStorage.setItem("slides:maxChars", String(maxChars));
     localStorage.setItem("slides:titleSize", String(titleSize));
     localStorage.setItem("slides:bodySize", String(bodySize));
-    localStorage.setItem("slides:useAI", String(useAI));
     localStorage.setItem("slides:aiModel", aiModel);
     localStorage.setItem("slides:aiTone", aiTone);
     localStorage.setItem("slides:aiLength", aiLength);
-  }, [theme, accent, anim, aspect, duration, maxChars, titleSize, bodySize, idx, useAI, aiModel, aiTone, aiLength]);
+  }, [theme, accent, anim, aspect, duration, maxChars, titleSize, bodySize, idx, aiModel, aiTone, aiLength]);
 
   const bgClass = theme === "dark" ? "bg-neutral-900 text-neutral-100" : "bg-white text-neutral-900";
   const cardClass = theme === "dark" ? "bg-neutral-800" : "bg-neutral-100";
@@ -395,30 +390,25 @@ export default function AnimatedSlidesFromText() {
                   
                   setGenerating(true);
                   try {
-                    if (useAI) {
-                      try {
-                        const apiUrl = import.meta.env.DEV ? 'http://localhost:8787/api/story' : '/api/story';
-                        const res = await fetch(apiUrl, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ raw, tone: aiTone, length: aiLength, model: aiModel })
-                        });
-                        const data = await res.json();
-                        if (res.status === 429) {
-                          // Rate limit exceeded - show donation popup
-                          setRateLimitedText(raw); // Store the original text
-                          setShowDonationModal(true);
-                          // Don't generate fallback slides yet - wait for user to click "Generate Slides Without AI"
-                        } else {
-                          const out = data?.content?.trim();
-                          if (out) setRaw(out);
-                        }
-                      } catch {
-                        // AI generation failed - keep original text
-                      }
+                    const apiUrl = import.meta.env.DEV ? 'http://localhost:8787/api/story' : '/api/story';
+                    const res = await fetch(apiUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ raw, tone: aiTone, length: aiLength, model: aiModel })
+                    });
+                    const data = await res.json();
+                    if (res.status === 429) {
+                      // Rate limit exceeded - show donation popup
+                      setRateLimitedText(raw); // Store the original text
+                      setShowDonationModal(true);
+                      // Don't generate fallback slides yet - wait for user to click "Continue with Original Text"
                     } else {
-                      // AI is disabled - keep original text
+                      const out = data?.content?.trim();
+                      if (out) setRaw(out);
                     }
+                  } catch (err) {
+                    console.error("AI generation failed:", err);
+                    // AI generation failed - keep original text
                   } finally {
                     setGenerating(false);
                   }
