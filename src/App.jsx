@@ -101,6 +101,7 @@ export default function AnimatedSlidesFromText() {
   const blocks = useMemo(() => splitIntoSlides(raw, maxChars), [raw, maxChars]);
   const slides = useMemo(() => blocks.map(pickTitleAndBody), [blocks]);
   const total = slides.length;
+  const wordCount = useMemo(() => raw.trim().split(/\s+/).filter(word => word.length > 0).length, [raw]);
   const size = useMemo(() => {
     const w = 1280;
     const h = aspect === "4:3" ? Math.round((w * 3) / 4) : Math.round((w * 9) / 16);
@@ -389,10 +390,14 @@ export default function AnimatedSlidesFromText() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className={`rounded-2xl border ${borderClass} ${cardClass} p-4 flex flex-col gap-4`}>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm opacity-80">Paste your text or context here, I'll auto-chunk by length/sentences with AI touch. Feel free to modify later</label>
-              <div className={`text-xs px-2 py-1 rounded ${raw.trim().split(/\s+/).filter(word => word.length > 0).length >= 30 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                {raw.trim().split(/\s+/).filter(word => word.length > 0).length} words
+            <div className="flex justify-between items-start mb-2">
+              <label className="text-sm opacity-80 flex-1">Paste your text or context here, I'll auto-chunk by length/sentences with AI touch. Feel free to modify later</label>
+              <div className={`text-xs px-2 py-1 rounded-full ml-3 flex items-center gap-1.5 ${wordCount >= 30 ? 'bg-green-500/20 text-green-600 border border-green-500/30' : 'bg-amber-500/20 text-amber-600 border border-amber-500/30'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${wordCount >= 30 ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+                <span className="font-medium">{wordCount}</span>
+                {wordCount < 30 && (
+                  <span className="text-xs opacity-60">/30</span>
+                )}
               </div>
             </div>
             <textarea value={raw} onChange={(e) => setRaw(e.target.value)} rows={16}
@@ -401,7 +406,6 @@ export default function AnimatedSlidesFromText() {
               <motion.button 
                 onClick={async () => {
                   // Validate input before generating
-                  const wordCount = raw.trim().split(/\s+/).filter(word => word.length > 0).length;
                   if (!raw.trim() || wordCount < 30) {
                     setShowValidationModal(true);
                     return;
