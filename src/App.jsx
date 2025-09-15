@@ -440,7 +440,8 @@ export default function AnimatedSlidesFromText() {
                         if (userApiKey && userApiKey.startsWith('sk-')) {
                           headers['x-user-openai-key'] = userApiKey;
                         }
-                        const res = await fetch('/api/story', {
+                        const apiUrl = import.meta.env.DEV ? 'http://localhost:8787/api/story' : '/api/story';
+                        const res = await fetch(apiUrl, {
                           method: 'POST',
                           headers,
                           body: JSON.stringify({ raw, tone: aiTone, length: aiLength, model: aiModel })
