@@ -223,10 +223,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/animated-slides/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/animated-slides/discussions)
-- **Email**: your-email@example.com
+- **Issues**: [GitHub Issues](https://github.com/fityanos/software-engineer-slides/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fityanos/software-engineer-slides/discussions)
 
 ---
 
-**Made with ❤️ by [Your Name](https://github.com/yourusername)**
+**Made with ❤️ by [Anas Fitiani](https://github.com/fityanos)**

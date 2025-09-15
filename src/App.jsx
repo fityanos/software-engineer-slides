@@ -96,6 +96,7 @@ export default function AnimatedSlidesFromText() {
   const [aiTone, setAiTone] = useState("inspiring");
   const [aiLength, setAiLength] = useState("medium");
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
 
   const blocks = useMemo(() => splitIntoSlides(raw, maxChars), [raw, maxChars]);
   const slides = useMemo(() => blocks.map(pickTitleAndBody), [blocks]);
@@ -388,12 +389,24 @@ export default function AnimatedSlidesFromText() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className={`rounded-2xl border ${borderClass} ${cardClass} p-4 flex flex-col gap-4`}>
-            <label className="text-sm opacity-80">Paste your text or context here, I'll auto-chunk by length/sentences with AI touch. Feel free to modify later</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm opacity-80">Paste your text or context here, I'll auto-chunk by length/sentences with AI touch. Feel free to modify later</label>
+              <div className={`text-xs px-2 py-1 rounded ${raw.trim().split(/\s+/).filter(word => word.length > 0).length >= 30 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                {raw.trim().split(/\s+/).filter(word => word.length > 0).length} words
+              </div>
+            </div>
             <textarea value={raw} onChange={(e) => setRaw(e.target.value)} rows={16}
                       className={`w-full rounded-xl p-4 border ${borderClass} bg-transparent focus:outline-none`} placeholder="Paste your text here…" />
             <div className="flex flex-wrap gap-3">
               <motion.button 
                 onClick={async () => {
+                  // Validate input before generating
+                  const wordCount = raw.trim().split(/\s+/).filter(word => word.length > 0).length;
+                  if (!raw.trim() || wordCount < 30) {
+                    setShowValidationModal(true);
+                    return;
+                  }
+                  
                   setGenerating(true);
                   try {
                     if (useAI) {
@@ -723,6 +736,47 @@ export default function AnimatedSlidesFromText() {
               <p className="text-xs opacity-60 mt-4">
                 Your support helps keep this service free for everyone!
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Validation Modal */}
+      {showValidationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowValidationModal(false)} />
+          <div className={`relative max-w-md w-full rounded-2xl border ${borderClass} ${cardClass} p-6 shadow-2xl`}>
+            <div className="text-center">
+              <div className="text-4xl mb-4">🤔</div>
+              <h2 className="text-xl font-semibold mb-2">Need More Context!</h2>
+              <p className="text-sm opacity-80 mb-6">
+                I can't read your thoughts! Give me more context please.
+                <br />
+                <span className="text-xs opacity-60">Try adding at least 30 words to get better results.</span>
+              </p>
+              
+              <div className="space-y-3">
+                <button 
+                  onClick={() => setShowValidationModal(false)}
+                  className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  Got it, I'll add more text
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    setShowValidationModal(false);
+                    // Focus on the textarea
+                    setTimeout(() => {
+                      const textarea = document.querySelector('textarea');
+                      if (textarea) textarea.focus();
+                    }, 100);
+                  }}
+                  className="block w-full border border-gray-300 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  Focus on text area
+                </button>
+              </div>
             </div>
           </div>
         </div>
