@@ -250,7 +250,8 @@ export default function AnimatedSlidesFromText() {
     if (titleSize !== 1) params.set("titleSize", String(titleSize));
     if (bodySize !== 1) params.set("bodySize", String(bodySize));
     if (idx !== 0) params.set("idx", String(idx));
-    if (useAI !== true) params.set("useAI", String(useAI));
+    // Only set useAI parameter when it's false (non-default)
+    if (useAI === false) params.set("useAI", "false");
     if (aiModel !== "gpt-4o-mini") params.set("aiModel", aiModel);
     if (aiTone !== "inspiring") params.set("aiTone", aiTone);
     if (aiLength !== "medium") params.set("aiLength", aiLength);
