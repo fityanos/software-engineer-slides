@@ -712,16 +712,7 @@ export default function AnimatedSlidesFromText() {
               
               <div className="space-y-3">
                 <a 
-                  href="https://buymeacoffee.com/yourusername" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-                >
-                  ☕ Buy me a coffee
-                </a>
-                
-                <a 
-                  href="https://github.com/sponsors/yourusername" 
+                  href="https://github.com/sponsors/fityanos" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="block w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors"
@@ -733,7 +724,7 @@ export default function AnimatedSlidesFromText() {
                   onClick={() => setShowDonationModal(false)}
                   className="block w-full border border-gray-300 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg transition-colors"
                 >
-                  Continue with basic features
+                  No, Thanks!
                 </button>
               </div>
               
