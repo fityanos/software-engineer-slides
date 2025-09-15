@@ -7,32 +7,6 @@ import PptxGenJS from "pptxgenjs";
 
 // ---------- Helpers ----------
 
-function generateStorySlides(raw) {
-  if (!raw || !raw.trim()) return "";
-  const text = raw.replace(/\r/g, " ").replace(/\s+/g, " ").trim();
-  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-
-  const title = sentences[0]?.replace(/[.!?]+$/, "") || "Story";
-  const hook = sentences.slice(0, 3).join(" ");
-  const problem = sentences.find(s => /(problem|challenge|issue|struggle|pain|slow|latency|waiting|drop[- ]?off)/i.test(s)) || sentences[1] || "";
-  const journey = sentences.slice(3, 8).join(" ");
-  const insights = sentences.filter(s => /(learn|realize|insight|key|pattern|we found|we saw)/i.test(s)).slice(0, 3);
-  const takeaways = sentences.filter(s => /(so|therefore|thus|as a result|we should|do this|next)/i.test(s)).slice(0, 5);
-  const cta = sentences.find(s => /(try|start|begin|adopt|measure|optimi[sz]e|ship|launch|contact)/i.test(s)) || "Ready to turn this into action?";
-
-  const bullets = (arr) => arr.map(s => `- ${s.replace(/^[\-•\s]+/, "")}`).join("\n");
-
-  const slides = [
-    `${title}\n${hook}`,
-    `The Problem\n${problem}`,
-    `The Journey\n${journey}`,
-    `Insights\n${bullets(insights.length ? insights : sentences.slice(8, 11))}`,
-    `Key Takeaways\n${bullets(takeaways.length ? takeaways : sentences.slice(-4))}`,
-    `Call to Action\n${cta}`,
-  ].filter(s => s && s.trim());
-
-  return slides.join("\n\n");
-}
 function splitIntoSlides(raw, maxChars = 280) {
   if (!raw) return [];
   const cleaned = raw.replace(/\r/g, "").trim();
@@ -97,6 +71,7 @@ export default function AnimatedSlidesFromText() {
   const [aiLength, setAiLength] = useState("medium");
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [rateLimitedText, setRateLimitedText] = useState("");
 
   const blocks = useMemo(() => splitIntoSlides(raw, maxChars), [raw, maxChars]);
   const slides = useMemo(() => blocks.map(pickTitleAndBody), [blocks]);
@@ -425,17 +400,18 @@ export default function AnimatedSlidesFromText() {
                         const data = await res.json();
                         if (res.status === 429) {
                           // Rate limit exceeded - show donation popup
+                          setRateLimitedText(raw); // Store the original text
                           setShowDonationModal(true);
-                          setRaw(generateStorySlides(raw));
+                          // Don't generate fallback slides yet - wait for user to click "Generate Slides Without AI"
                         } else {
                           const out = data?.content?.trim();
-                          if (out) setRaw(out); else setRaw(generateStorySlides(raw));
+                          if (out) setRaw(out);
                         }
                       } catch {
-                        setRaw(generateStorySlides(raw));
+                        // AI generation failed - keep original text
                       }
                     } else {
-                      setRaw(generateStorySlides(raw));
+                      // AI is disabled - keep original text
                     }
                   } finally {
                     setGenerating(false);
@@ -704,11 +680,10 @@ export default function AnimatedSlidesFromText() {
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowDonationModal(false)} />
           <div className={`relative max-w-md w-full rounded-2xl border ${borderClass} ${cardClass} p-6 shadow-2xl`}>
             <div className="text-center">
-              <div className="text-4xl mb-4">☕</div>
-              <h2 className="text-xl font-semibold mb-2">Free Tier Limit Reached</h2>
+              <div className="text-4xl mb-4">⏰</div>
+              <h2 className="text-xl font-semibold mb-2">You Hit Your Daily Limit</h2>
               <p className="text-sm opacity-80 mb-6">
-                You've reached the daily limit for free AI-generated slides. 
-                Support the project to continue using AI features!
+                To maintain the service we are limiting the usage. You can come back tomorrow.
               </p>
               
               <div className="space-y-3">
@@ -718,15 +693,8 @@ export default function AnimatedSlidesFromText() {
                   rel="noopener noreferrer"
                   className="block w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors"
                 >
-                  💖 GitHub Sponsors
+                  💖 $5 GitHub Sponsoring
                 </a>
-                
-                <button 
-                  onClick={() => setShowDonationModal(false)}
-                  className="block w-full border border-gray-300 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg transition-colors"
-                >
-                  No, Thanks!
-                </button>
               </div>
               
               <p className="text-xs opacity-60 mt-4">
