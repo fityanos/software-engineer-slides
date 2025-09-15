@@ -107,8 +107,7 @@ export default function AnimatedSlidesFromText() {
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
   const [aiTone, setAiTone] = useState("inspiring");
   const [aiLength, setAiLength] = useState("medium");
-  const [userApiKey, setUserApiKey] = useState("");
-  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
 
   const blocks = useMemo(() => splitIntoSlides(raw, maxChars), [raw, maxChars]);
   const slides = useMemo(() => blocks.map(pickTitleAndBody), [blocks]);
@@ -437,19 +436,21 @@ export default function AnimatedSlidesFromText() {
                   try {
                     if (useAI) {
                       try {
-                        const headers = { 'Content-Type': 'application/json' };
-                        if (userApiKey && userApiKey.startsWith('sk-')) {
-                          headers['x-user-openai-key'] = userApiKey;
-                        }
                         const apiUrl = import.meta.env.DEV ? 'http://localhost:8787/api/story' : '/api/story';
                         const res = await fetch(apiUrl, {
                           method: 'POST',
-                          headers,
+                          headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ raw, tone: aiTone, length: aiLength, model: aiModel })
                         });
                         const data = await res.json();
-                        const out = data?.content?.trim();
-                        if (out) setRaw(out); else setRaw(generateStorySlides(raw));
+                        if (res.status === 429) {
+                          // Rate limit exceeded - show donation popup
+                          setShowDonationModal(true);
+                          setRaw(generateStorySlides(raw));
+                        } else {
+                          const out = data?.content?.trim();
+                          if (out) setRaw(out); else setRaw(generateStorySlides(raw));
+                        }
                       } catch {
                         setRaw(generateStorySlides(raw));
                       }
@@ -559,24 +560,6 @@ export default function AnimatedSlidesFromText() {
                  role="dialog" aria-label="Settings">
               <div className="text-sm font-semibold opacity-80 mb-2">Settings</div>
               <div className="space-y-3">
-                <div className="border-b pb-3">
-                  <div className="text-xs opacity-70 mb-1">BYOK (Bring Your Own Key)</div>
-                  <input 
-                    type="password" 
-                    value={userApiKey} 
-                    onChange={(e) => setUserApiKey(e.target.value)}
-                    placeholder="Enter your OpenAI API key (sk-...)"
-                    className={`w-full px-2 py-1 rounded border text-xs bg-transparent ${theme === 'dark' ? 'text-neutral-100' : 'text-neutral-900'}`}
-                  />
-                  <div className="text-[10px] opacity-50 mt-1">
-                    {userApiKey ? '✅ Using your API key' : 'Using free tier (limited)'}
-                  </div>
-                  <div className="text-[10px] opacity-40 mt-1 space-y-1">
-                    <div>🔒 Key never stored or logged</div>
-                    <div>🛡️ Sent directly to OpenAI</div>
-                    <div>📋 <button onClick={() => setShowSecurityModal(true)} className="underline">Security details</button></div>
-                  </div>
-                </div>
                 <div>
                   <div className="text-xs opacity-70 mb-1">Theme</div>
                   <div className="flex gap-2">
@@ -735,53 +718,49 @@ export default function AnimatedSlidesFromText() {
         </div>
       )}
 
-      {/* Security Modal */}
-      {showSecurityModal && (
+      {/* Donation Modal */}
+      {showDonationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowSecurityModal(false)} />
-          <div className={`relative max-w-2xl w-full max-h-[80vh] overflow-y-auto rounded-2xl border ${borderClass} ${cardClass} p-6 shadow-2xl`}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">🔒 API Key Security</h2>
-              <button onClick={() => setShowSecurityModal(false)} className="text-2xl">&times;</button>
-            </div>
-            
-            <div className="space-y-4 text-sm">
-              <div>
-                <h3 className="font-semibold mb-2">✅ How We Protect Your API Key:</h3>
-                <ul className="space-y-1 text-xs opacity-80">
-                  <li>• <strong>No Storage:</strong> Your key is never saved on our servers or in your browser</li>
-                  <li>• <strong>Memory Only:</strong> Key exists only in your browser's memory during the session</li>
-                  <li>• <strong>Direct Proxy:</strong> Your key is sent directly to OpenAI through our secure server</li>
-                  <li>• <strong>No Logging:</strong> We mask API keys in all logs (shows as sk-***1234)</li>
-                </ul>
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowDonationModal(false)} />
+          <div className={`relative max-w-md w-full rounded-2xl border ${borderClass} ${cardClass} p-6 shadow-2xl`}>
+            <div className="text-center">
+              <div className="text-4xl mb-4">☕</div>
+              <h2 className="text-xl font-semibold mb-2">Free Tier Limit Reached</h2>
+              <p className="text-sm opacity-80 mb-6">
+                You've reached the daily limit for free AI-generated slides. 
+                Support the project to continue using AI features!
+              </p>
+              
+              <div className="space-y-3">
+                <a 
+                  href="https://buymeacoffee.com/yourusername" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  ☕ Buy me a coffee
+                </a>
+                
+                <a 
+                  href="https://github.com/sponsors/yourusername" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  💖 GitHub Sponsors
+                </a>
+                
+                <button 
+                  onClick={() => setShowDonationModal(false)}
+                  className="block w-full border border-gray-300 hover:bg-gray-50 font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  Continue with basic features
+                </button>
               </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">🔍 How to Verify Safety:</h3>
-                <ul className="space-y-1 text-xs opacity-80">
-                  <li>• <strong>Check Network Tab:</strong> Open DevTools (F12) → Network → verify key goes to /api/story only</li>
-                  <li>• <strong>View Source:</strong> Your key should NOT appear in page source</li>
-                  <li>• <strong>Monitor Usage:</strong> Check your OpenAI dashboard for unexpected usage</li>
-                  <li>• <strong>Set Limits:</strong> Configure spending limits in your OpenAI account</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">🛡️ Best Practices:</h3>
-                <ul className="space-y-1 text-xs opacity-80">
-                  <li>• Use a dedicated API key for this service</li>
-                  <li>• Set usage limits in your OpenAI account</li>
-                  <li>• Monitor your API usage regularly</li>
-                  <li>• Revoke the key if you have any concerns</li>
-                </ul>
-              </div>
-
-              <div className="border-t pt-4">
-                <p className="text-xs opacity-60">
-                  <strong>Note:</strong> This project is open source. You can review the code, 
-                  verify our security practices, or run your own instance if preferred.
-                </p>
-              </div>
+              
+              <p className="text-xs opacity-60 mt-4">
+                Your support helps keep this service free for everyone!
+              </p>
             </div>
           </div>
         </div>

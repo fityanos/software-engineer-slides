@@ -56,16 +56,12 @@ app.post('/api/story', async (req, res) => {
       return res.status(400).json({ error: 'Model not allowed' });
     }
 
-    // BYOK support via header
-    const headerKey = req.get('x-user-openai-key') || (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
-    const usingByok = !!(headerKey && headerKey.startsWith('sk-'));
-    const openai = createClient(usingByok ? headerKey : serverKey);
+    // Use server's API key only
+    const openai = createClient(serverKey);
 
-    // Daily quota for free tier (when not BYOK)
-    if (!usingByok) {
-      const ok = checkAndIncrementDaily(req.ip || req.headers['x-forwarded-for'] || 'anon');
-      if (!ok) return res.status(429).json({ error: 'Daily free tier exhausted. Try tomorrow or use your own API key.' });
-    }
+    // Daily quota for free tier
+    const ok = checkAndIncrementDaily(req.ip || req.headers['x-forwarded-for'] || 'anon');
+    if (!ok) return res.status(429).json({ error: 'Daily free tier limit reached. Support the project to continue!' });
     const userText = raw.trim();
     const isShort = userText.split(/\s+/).length < 12;
     const guidance = `

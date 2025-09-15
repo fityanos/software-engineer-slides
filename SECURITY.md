@@ -1,53 +1,49 @@
 # Security & Privacy Policy
 
-## 🔒 API Key Safety
+## 🔒 Service Security
 
-### How We Protect Your API Key
+### How We Protect Your Data
 
-1. **No Storage**: Your API key is never stored on our servers or in your browser
-2. **Direct Proxy**: Your key is sent directly to OpenAI through our secure server
-3. **No Logging**: We mask API keys in all logs (shows as `sk-***1234`)
-4. **Memory Only**: Keys exist only in your browser's memory during the session
+1. **Server-Side API Key**: We use our own OpenAI API key to provide free AI features
+2. **No User Keys Required**: You don't need to provide any API keys
+3. **Rate Limiting**: Free tier has daily limits to prevent abuse
+4. **Input Validation**: All inputs are validated and sanitized
 
-### What Happens When You Use Your API Key
+### How the Service Works
 
 ```
 Your Browser → Our Server → OpenAI API
      ↓              ↓           ↓
-  [Your Key]   [Proxy Only]  [Your Key]
+  [Your Text]   [Our Key]   [AI Response]
 ```
 
-### Verification Steps
+### Free Tier Limits
 
-1. **Check Network Tab**: 
-   - Open browser DevTools (F12)
-   - Go to Network tab
-   - Make a request with your API key
-   - Verify the key is sent to `/api/story` endpoint only
+1. **Daily Limit**: 15 AI-generated slide sets per day per IP
+2. **Rate Limiting**: 6 requests per minute to prevent abuse
+3. **Input Size**: Maximum 8KB of text per request
+4. **Model**: Uses gpt-4o-mini for cost efficiency
 
-2. **Check Source Code**:
-   - View page source (Ctrl+U)
-   - Search for your API key - it should NOT appear anywhere
-   - The key only exists in the request headers
+### What Happens When Limits Are Reached
 
-3. **Check Server Logs**:
-   - Our server logs show masked keys: `sk-***1234`
-   - Your full key is never logged
+- **Graceful Degradation**: Falls back to basic slide generation
+- **Donation Prompt**: Shows support options to continue using AI features
+- **No Data Loss**: Your content is preserved and still works
 
 ### Security Best Practices
 
-1. **Use a Dedicated Key**: Create a separate OpenAI API key for this service
-2. **Set Usage Limits**: Configure spending limits in your OpenAI account
-3. **Monitor Usage**: Check your OpenAI dashboard regularly
-4. **Revoke if Needed**: You can revoke the key anytime from OpenAI
+1. **No Personal Data**: We don't collect or store personal information
+2. **Input Validation**: All text inputs are validated and sanitized
+3. **Rate Limiting**: Prevents abuse and ensures fair usage
+4. **HTTPS Only**: All communications are encrypted
 
 ### What We Don't Do
 
-- ❌ Store your API key
-- ❌ Log your full API key
-- ❌ Share your key with third parties
-- ❌ Use your key for other purposes
-- ❌ Access your OpenAI account
+- ❌ Store your personal data
+- ❌ Require API keys from users
+- ❌ Share your content with third parties
+- ❌ Track your usage beyond rate limiting
+- ❌ Access your personal information
 
 ### Open Source
 
