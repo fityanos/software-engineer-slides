@@ -103,9 +103,7 @@ export default function AnimatedSlidesFromText() {
   const [exporting, setExporting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [slidesExpanded, setSlidesExpanded] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
   const [useAI, setUseAI] = useState(true);
-  const [aiKey, setAiKey] = useState("");
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
   const [aiTone, setAiTone] = useState("inspiring");
   const [aiLength, setAiLength] = useState("medium");
@@ -556,46 +554,6 @@ export default function AnimatedSlidesFromText() {
                  role="dialog" aria-label="Settings">
               <div className="text-sm font-semibold opacity-80 mb-2">Settings</div>
               <div className="space-y-3">
-                <div className="border-b pb-3 space-y-2">
-                  <div className="text-xs opacity-70 mb-1">AI Story Generation</div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={useAI} onChange={(e)=> setUseAI(e.target.checked)} /> Use OpenAI for story
-                  </label>
-                  {useAI && (
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="flex flex-col">
-                          <span className="text-xs opacity-70 mb-1">Model</span>
-                          <select value={aiModel} onChange={(e)=> setAiModel(e.target.value)} className={`w-full px-2 py-1 rounded border text-sm bg-transparent ${theme === 'dark' ? 'text-neutral-100' : 'text-neutral-900'}`}>
-                            <option value="gpt-5-thinking">gpt-5-thinking</option>
-                            <option value="gpt-5">gpt-5</option>
-                            <option value="gpt-4o-mini">gpt-4o-mini</option>
-                            <option value="gpt-4o">gpt-4o</option>
-                            <option value="gpt-4-turbo">gpt-4-turbo</option>
-                            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                          </select>
-                        </label>
-                        <label className="flex flex-col">
-                          <span className="text-xs opacity-70 mb-1">Tone</span>
-                          <select value={aiTone} onChange={(e)=> setAiTone(e.target.value)} className={`w-full px-2 py-1 rounded border text-sm bg-transparent ${theme === 'dark' ? 'text-neutral-100' : 'text-neutral-900'}`}>
-                            <option value="inspiring">Inspiring</option>
-                            <option value="concise">Concise</option>
-                            <option value="professional">Professional</option>
-                            <option value="casual">Casual</option>
-                          </select>
-                        </label>
-                      </div>
-                      <label className="flex flex-col">
-                        <span className="text-xs opacity-70 mb-1">Length</span>
-                        <select value={aiLength} onChange={(e)=> setAiLength(e.target.value)} className={`w-full px-2 py-1 rounded border text-sm bg-transparent ${theme === 'dark' ? 'text-neutral-100' : 'text-neutral-900'}`}>
-                          <option value="short">Short</option>
-                          <option value="medium">Medium</option>
-                          <option value="long">Long</option>
-                        </select>
-                      </label>
-                    </>
-                  )}
-                </div>
                 <div>
                   <div className="text-xs opacity-70 mb-1">Theme</div>
                   <div className="flex gap-2">
@@ -754,59 +712,6 @@ export default function AnimatedSlidesFromText() {
         </div>
       )}
 
-      {showTutorial && (
-        <div 
-          className="fixed inset-0 z-50" 
-          role="dialog" 
-          aria-modal="true"
-          onClick={() => setShowTutorial(false)}
-        >
-          {/* Grayout overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          
-          {/* Spotlight on settings button */}
-          <div className="absolute top-4 right-4 w-24 h-10 bg-white rounded-lg shadow-lg" />
-          
-          {/* Arrow and text pointing to settings */}
-          <div className="absolute top-16 right-8 flex flex-col items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white dark:bg-neutral-800 rounded-xl p-4 shadow-2xl border border-gray-200 dark:border-neutral-700 max-w-xs"
-            >
-              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                Add your Open AI API Key
-              </div>
-            </motion.div>
-            
-            {/* Arrow pointing up to settings */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 }}
-              className="relative mt-2"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-white dark:text-neutral-800"
-              >
-                <path
-                  d="M12 2L2 12H8V22H16V12H22L12 2Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </motion.div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
