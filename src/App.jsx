@@ -107,6 +107,7 @@ export default function AnimatedSlidesFromText() {
   const [aiModel, setAiModel] = useState("gpt-4o-mini");
   const [aiTone, setAiTone] = useState("inspiring");
   const [aiLength, setAiLength] = useState("medium");
+  const [userApiKey, setUserApiKey] = useState("");
 
   const blocks = useMemo(() => splitIntoSlides(raw, maxChars), [raw, maxChars]);
   const slides = useMemo(() => blocks.map(pickTitleAndBody), [blocks]);
@@ -435,9 +436,13 @@ export default function AnimatedSlidesFromText() {
                   try {
                     if (useAI) {
                       try {
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (userApiKey && userApiKey.startsWith('sk-')) {
+                          headers['x-user-openai-key'] = userApiKey;
+                        }
                         const res = await fetch('/api/story', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers,
                           body: JSON.stringify({ raw, tone: aiTone, length: aiLength, model: aiModel })
                         });
                         const data = await res.json();
@@ -552,6 +557,19 @@ export default function AnimatedSlidesFromText() {
                  role="dialog" aria-label="Settings">
               <div className="text-sm font-semibold opacity-80 mb-2">Settings</div>
               <div className="space-y-3">
+                <div className="border-b pb-3">
+                  <div className="text-xs opacity-70 mb-1">BYOK (Bring Your Own Key)</div>
+                  <input 
+                    type="password" 
+                    value={userApiKey} 
+                    onChange={(e) => setUserApiKey(e.target.value)}
+                    placeholder="Enter your OpenAI API key (sk-...)"
+                    className={`w-full px-2 py-1 rounded border text-xs bg-transparent ${theme === 'dark' ? 'text-neutral-100' : 'text-neutral-900'}`}
+                  />
+                  <div className="text-[10px] opacity-50 mt-1">
+                    {userApiKey ? '✅ Using your API key' : 'Using free tier (limited)'}
+                  </div>
+                </div>
                 <div>
                   <div className="text-xs opacity-70 mb-1">Theme</div>
                   <div className="flex gap-2">
