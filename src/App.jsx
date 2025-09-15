@@ -6,15 +6,6 @@ import { saveAs } from "file-saver";
 import PptxGenJS from "pptxgenjs";
 
 // ---------- Helpers ----------
-function VisualImg({ candidates, className }) {
-  const [srcIdx, setSrcIdx] = React.useState(0);
-  if (!candidates || candidates.length === 0) return null;
-  const src = candidates[Math.min(srcIdx, candidates.length - 1)];
-  return (
-    <img src={src} alt="" className={className}
-         onError={() => setSrcIdx((i) => i + 1)} />
-  );
-}
 
 function generateStorySlides(raw) {
   if (!raw || !raw.trim()) return "";
@@ -97,9 +88,6 @@ export default function AnimatedSlidesFromText() {
   const [exportScale, setExportScale] = useState(2);
   const [exportPadding, setExportPadding] = useState(40);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [visualsEnabled, setVisualsEnabled] = useState(false);
-  const [visualsStyle, setVisualsStyle] = useState("background");
-  const [includeVisualsInExport, setIncludeVisualsInExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [slidesExpanded, setSlidesExpanded] = useState(false);
@@ -118,24 +106,6 @@ export default function AnimatedSlidesFromText() {
     return { w, h };
   }, [aspect]);
 
-  // Contextual visual suggestions per slide via keywords → image providers
-  const visualUrls = useMemo(() => {
-    const stop = new Set(["the","a","an","and","or","of","to","for","in","on","at","with","by","is","are","be","this","that","it","as","from","we","our","your","their","was","were","will","can","may","might"]);
-    return slides.map(({ title, body }) => {
-      const text = `${title} ${body || ''}`.toLowerCase();
-      const words = text.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w && !stop.has(w) && w.length > 2);
-      const unique = Array.from(new Set(words));
-      const query = unique.slice(0, 5).join(',');
-      if (!query) return '';
-      const seed = encodeURIComponent(unique.join('-').slice(0, 64) || 'slide');
-      // Build multiple candidate providers; we'll attempt in order until one loads
-      return [
-        `https://source.unsplash.com/1600x900/?${encodeURIComponent(query)}`,
-        `https://loremflickr.com/1600/900/${encodeURIComponent(query)}`,
-        `https://picsum.photos/seed/${seed}/1600/900`,
-      ];
-    });
-  }, [slides]);
 
   const previewRef = useRef(null);
   const presentRef = useRef(null);
@@ -268,20 +238,22 @@ export default function AnimatedSlidesFromText() {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    params.set("theme", theme);
-    params.set("accent", accent);
-    params.set("anim", anim);
-    params.set("aspect", aspect);
-    params.set("duration", String(duration));
-    params.set("maxChars", String(maxChars));
-    params.set("titleSize", String(titleSize));
-    params.set("bodySize", String(bodySize));
-    params.set("idx", String(idx));
-    params.set("useAI", String(useAI));
-    params.set("aiModel", aiModel);
-    params.set("aiTone", aiTone);
-    params.set("aiLength", aiLength);
-    const newUrl = `${location.pathname}?${params.toString()}`;
+    // Only set non-default values to keep URLs clean
+    if (theme !== "dark") params.set("theme", theme);
+    if (accent !== "indigo") params.set("accent", accent);
+    if (anim !== "Fade") params.set("anim", anim);
+    if (aspect !== "16:9") params.set("aspect", aspect);
+    if (duration !== 3) params.set("duration", String(duration));
+    if (maxChars !== 280) params.set("maxChars", String(maxChars));
+    if (titleSize !== 1) params.set("titleSize", String(titleSize));
+    if (bodySize !== 1) params.set("bodySize", String(bodySize));
+    if (idx !== 0) params.set("idx", String(idx));
+    if (useAI !== true) params.set("useAI", String(useAI));
+    if (aiModel !== "gpt-4o-mini") params.set("aiModel", aiModel);
+    if (aiTone !== "inspiring") params.set("aiTone", aiTone);
+    if (aiLength !== "medium") params.set("aiLength", aiLength);
+    
+    const newUrl = params.toString() ? `${location.pathname}?${params.toString()}` : location.pathname;
     window.history.replaceState(null, "", newUrl);
     localStorage.setItem("slides:theme", theme);
     localStorage.setItem("slides:accent", accent);
@@ -352,16 +324,6 @@ export default function AnimatedSlidesFromText() {
       <div className={`relative w-full h-full ${bgClass} overflow-hidden ${full ? '' : `rounded-2xl shadow-2xl border ${borderClass}`}`}
            style={{ width: full ? size.w : size.w / 2, height: full ? size.h : size.h / 2 }}>
         {/* contextual visual */}
-        {visualsEnabled && !(exporting && !includeVisualsInExport) && visualUrls[idx] && visualUrls[idx].length > 0 && (
-          visualsStyle === 'background' ? (
-            <VisualImg candidates={visualUrls[idx]} className="absolute inset-0 w-full h-full object-cover opacity-30" />
-          ) : (
-            <div className="absolute right-0 top-0 h-full w-2/5 overflow-hidden hidden md:block">
-              <VisualImg candidates={visualUrls[idx]} className="w-full h-full object-cover opacity-80" />
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/30" />
-            </div>
-          )
-        )}
         <div className="absolute inset-0 flex flex-col gap-6" style={{ padding: exportPadding }}>
           <div className="font-extrabold tracking-tight leading-tight" style={{ fontSize: `${(theme === 'dark' ? 48 : 48) * titleSize}px` }}>
             {title}

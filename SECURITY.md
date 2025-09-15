@@ -54,31 +54,21 @@ This project is open source. You can:
 
 ## 🚨 If You Have Concerns
 
-1. **Check Your OpenAI Usage**: Monitor your API usage dashboard
-2. **Set Spending Limits**: Configure limits in your OpenAI account
-3. **Use a Test Key**: Try with a limited test key first
-4. **Contact Us**: Reach out if you have security questions
+1. **Check Usage**: Monitor your daily usage (15 requests per day)
+2. **Support the Project**: Consider donating to help maintain the service
+3. **Contact Us**: Reach out if you have security questions
+4. **Self-Host**: Run your own instance using the open source code
 
 ## 🔍 Technical Details
 
-### Request Flow
-```
-1. User enters API key in browser
-2. Key stored in React state (memory only)
-3. On request, key sent in x-user-openai-key header
-4. Server forwards request to OpenAI with user's key
-5. Response returned to user
-6. Key remains in memory, never persisted
-```
-
 ### Server Implementation
-- Express.js server acts as proxy
+- Express.js server with OpenAI integration
 - CORS protection enabled
-- Rate limiting implemented
+- Rate limiting implemented (6 requests/minute, 15/day)
 - Input validation and sanitization
-- Error handling without key exposure
+- Graceful error handling
 
 ---
 
-**Last Updated**: $(date)
-**Version**: 1.0.0
+**Last Updated**: December 2024
+**Version**: 2.0.0
