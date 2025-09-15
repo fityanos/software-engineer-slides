@@ -303,7 +303,13 @@ export default function AnimatedSlidesFromText() {
            style={{ width: full ? size.w : size.w / 2, height: full ? size.h : size.h / 2 }}>
         {/* contextual visual */}
         <div className="absolute inset-0 flex flex-col gap-6" style={{ padding: exportPadding }}>
-          <div className="font-extrabold tracking-tight leading-tight" style={{ fontSize: `${(theme === 'dark' ? 48 : 48) * titleSize}px` }}>
+          <div className="font-extrabold tracking-tight leading-tight" style={{ 
+            fontSize: `${(theme === 'dark' ? 48 : 48) * titleSize}px`,
+            background: accentGradient,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
             {title}
           </div>
           {body && (
@@ -448,7 +454,6 @@ export default function AnimatedSlidesFromText() {
                   </>
                 )}
               </motion.button>
-              <button onClick={() => setIdx(0)} className="px-4 py-2 rounded-xl border">⟲ Restart</button>
             </div>
             <div className="text-xs opacity-60">
               Tip: Use blank lines to force a new slide. Use bullets (- or •) for nicer PPTX exports.
@@ -494,7 +499,7 @@ export default function AnimatedSlidesFromText() {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     {slides.map((s, i) => (
                       <button key={i} onClick={() => setIdx(i)}
-                              className={`text-left p-3 rounded-xl border ${borderClass} ${i === idx ? 'ring-2 ring-indigo-500' : ''} ${cardClass} hover:opacity-90`}>
+                              className={`text-left p-3 rounded-xl border ${borderClass} ${i === idx ? `ring-2 ${accent === 'indigo' ? 'ring-indigo-500' : accent === 'emerald' ? 'ring-emerald-500' : 'ring-rose-500'}` : ''} ${cardClass} hover:opacity-90`}>
                         <div className="text-xs font-semibold line-clamp-2">{s.title || `Slide ${i + 1}`}</div>
                         {s.body && <div className="text-[11px] opacity-60 line-clamp-3 mt-1 whitespace-pre-wrap">{s.body}</div>}
                       </button>

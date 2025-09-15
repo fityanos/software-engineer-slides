@@ -1,11 +1,68 @@
 import OpenAI from 'openai';
 
+// Simple in-memory rate limiting (resets on serverless function restart)
+// In production, you'd want to use Redis or a database for persistence
+const rateLimitStore = new Map();
+const dailyLimitStore = new Map();
+
+function getClientIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+         req.headers['x-real-ip'] || 
+         req.connection?.remoteAddress || 
+         'unknown';
+}
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const minute = Math.floor(now / 60000); // Current minute
+  const day = Math.floor(now / 86400000); // Current day
+  
+  // Per-minute rate limiting
+  const minuteKey = `${ip}:${minute}`;
+  const minuteCount = rateLimitStore.get(minuteKey) || 0;
+  const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '6', 10);
+  
+  if (minuteCount >= RATE_LIMIT_RPM) {
+    return { allowed: false, reason: 'minute' };
+  }
+  
+  // Daily quota limiting
+  const dayKey = `${ip}:${day}`;
+  const dayCount = dailyLimitStore.get(dayKey) || 0;
+  const FREE_TIER_DAILY = parseInt(process.env.FREE_TIER_DAILY || '15', 10);
+  
+  if (dayCount >= FREE_TIER_DAILY) {
+    return { allowed: false, reason: 'daily' };
+  }
+  
+  // Increment counters
+  rateLimitStore.set(minuteKey, minuteCount + 1);
+  dailyLimitStore.set(dayKey, dayCount + 1);
+  
+  // Clean up old entries (keep only last 2 minutes and 2 days)
+  for (const [key] of rateLimitStore) {
+    const [storedIP, storedMinute] = key.split(':');
+    if (storedMinute < minute - 1) {
+      rateLimitStore.delete(key);
+    }
+  }
+  
+  for (const [key] of dailyLimitStore) {
+    const [storedIP, storedDay] = key.split(':');
+    if (storedDay < day - 1) {
+      dailyLimitStore.delete(key);
+    }
+  }
+  
+  return { allowed: true, minuteCount: minuteCount + 1, dayCount: dayCount + 1 };
+}
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-user-openai-key, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -36,32 +93,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Model '${model}' is not allowed.` });
     }
 
-    // Determine which API key to use
-    let openaiInstance;
-    let isBYOK = false;
-    const userApiKey = req.headers['x-user-openai-key'] || 
-      (req.headers['authorization'] && req.headers['authorization'].startsWith('Bearer ') ? 
-        req.headers['authorization'].slice(7) : null);
-
-    if (userApiKey && userApiKey.startsWith('sk-')) {
-      openaiInstance = new OpenAI({ apiKey: userApiKey });
-      isBYOK = true;
-    } else {
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ error: 'Server not configured: missing OPENAI_API_KEY' });
-      }
-      openaiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    }
-
-    // For Vercel, we'll implement a simple rate limiting using headers
-    // In production, you might want to use a more sophisticated solution
-    const rateLimitKey = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    const rateLimitCount = parseInt(req.headers['x-rate-limit-count'] || '0', 10);
-    const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '6', 10);
+    // Check rate limits
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(clientIP);
     
-    if (!isBYOK && rateLimitCount >= RATE_LIMIT_RPM) {
-      return res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+    if (!rateLimitResult.allowed) {
+      console.log(`Rate limit exceeded for IP ${clientIP}: ${rateLimitResult.reason}`);
+      return res.status(429).json({ 
+        error: rateLimitResult.reason === 'daily' 
+          ? 'Daily limit reached. Please try again tomorrow or consider supporting the project.' 
+          : 'Rate limit exceeded. Please try again later.' 
+      });
     }
+
+    // Use server's API key only
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'Server not configured: missing OPENAI_API_KEY' });
+    }
+    
+    const openaiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const userText = raw.trim();
     const isShort = userText.split(/\s+/).length < 12;
@@ -94,15 +144,20 @@ export default async function handler(req, res) {
     const out = completion.choices?.[0]?.message?.content?.trim();
     
     // Set rate limit headers
-    res.setHeader('X-RateLimit-Limit', RATE_LIMIT_RPM);
-    res.setHeader('X-RateLimit-Remaining', Math.max(0, RATE_LIMIT_RPM - rateLimitCount - 1));
+    const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '6', 10);
+    const FREE_TIER_DAILY = parseInt(process.env.FREE_TIER_DAILY || '15', 10);
+    
+    res.setHeader('X-RateLimit-Limit-Minute', RATE_LIMIT_RPM);
+    res.setHeader('X-RateLimit-Remaining-Minute', Math.max(0, RATE_LIMIT_RPM - rateLimitResult.minuteCount));
+    res.setHeader('X-RateLimit-Limit-Daily', FREE_TIER_DAILY);
+    res.setHeader('X-RateLimit-Remaining-Daily', Math.max(0, FREE_TIER_DAILY - rateLimitResult.dayCount));
     
     res.json({ content: out || '' });
   } catch (err) {
     console.error('API Error:', err);
     
     if (err.response && err.response.status === 429 && err.response.data?.error?.code === 'insufficient_quota') {
-      return res.status(429).json({ error: 'OpenAI quota exceeded. Please try again later or use your own API key.' });
+      return res.status(429).json({ error: 'OpenAI quota exceeded. Please try again later.' });
     }
     
     res.status(500).json({ error: 'Failed to generate story' });
