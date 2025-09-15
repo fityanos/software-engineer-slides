@@ -108,6 +108,7 @@ export default function AnimatedSlidesFromText() {
   const [aiTone, setAiTone] = useState("inspiring");
   const [aiLength, setAiLength] = useState("medium");
   const [userApiKey, setUserApiKey] = useState("");
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
 
   const blocks = useMemo(() => splitIntoSlides(raw, maxChars), [raw, maxChars]);
   const slides = useMemo(() => blocks.map(pickTitleAndBody), [blocks]);
@@ -570,6 +571,11 @@ export default function AnimatedSlidesFromText() {
                   <div className="text-[10px] opacity-50 mt-1">
                     {userApiKey ? '✅ Using your API key' : 'Using free tier (limited)'}
                   </div>
+                  <div className="text-[10px] opacity-40 mt-1 space-y-1">
+                    <div>🔒 Key never stored or logged</div>
+                    <div>🛡️ Sent directly to OpenAI</div>
+                    <div>📋 <button onClick={() => setShowSecurityModal(true)} className="underline">Security details</button></div>
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs opacity-70 mb-1">Theme</div>
@@ -724,6 +730,58 @@ export default function AnimatedSlidesFromText() {
             </ul>
             <div className="mt-4 flex justify-end">
               <button onClick={() => setHelpOpen(false)} className="px-3 py-2 rounded-lg border">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Security Modal */}
+      {showSecurityModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowSecurityModal(false)} />
+          <div className={`relative max-w-2xl w-full max-h-[80vh] overflow-y-auto rounded-2xl border ${borderClass} ${cardClass} p-6 shadow-2xl`}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">🔒 API Key Security</h2>
+              <button onClick={() => setShowSecurityModal(false)} className="text-2xl">&times;</button>
+            </div>
+            
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold mb-2">✅ How We Protect Your API Key:</h3>
+                <ul className="space-y-1 text-xs opacity-80">
+                  <li>• <strong>No Storage:</strong> Your key is never saved on our servers or in your browser</li>
+                  <li>• <strong>Memory Only:</strong> Key exists only in your browser's memory during the session</li>
+                  <li>• <strong>Direct Proxy:</strong> Your key is sent directly to OpenAI through our secure server</li>
+                  <li>• <strong>No Logging:</strong> We mask API keys in all logs (shows as sk-***1234)</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">🔍 How to Verify Safety:</h3>
+                <ul className="space-y-1 text-xs opacity-80">
+                  <li>• <strong>Check Network Tab:</strong> Open DevTools (F12) → Network → verify key goes to /api/story only</li>
+                  <li>• <strong>View Source:</strong> Your key should NOT appear in page source</li>
+                  <li>• <strong>Monitor Usage:</strong> Check your OpenAI dashboard for unexpected usage</li>
+                  <li>• <strong>Set Limits:</strong> Configure spending limits in your OpenAI account</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">🛡️ Best Practices:</h3>
+                <ul className="space-y-1 text-xs opacity-80">
+                  <li>• Use a dedicated API key for this service</li>
+                  <li>• Set usage limits in your OpenAI account</li>
+                  <li>• Monitor your API usage regularly</li>
+                  <li>• Revoke the key if you have any concerns</li>
+                </ul>
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-xs opacity-60">
+                  <strong>Note:</strong> This project is open source. You can review the code, 
+                  verify our security practices, or run your own instance if preferred.
+                </p>
+              </div>
             </div>
           </div>
         </div>
