@@ -14,7 +14,7 @@ app.use(cors({ origin: corsOrigin && corsOrigin.length > 0 ? corsOrigin : true }
 app.use(express.json({ limit: '1mb' }));
 
 // Per-minute rate limit (tighten for free tier)
-const limiter = rateLimit({ windowMs: 60 * 1000, max: Number(process.env.RATE_LIMIT_RPM || 6), standardHeaders: true, legacyHeaders: false });
+const limiter = rateLimit({ windowMs: 60 * 1000, max: Number(process.env.RATE_LIMIT_RPM || 2), standardHeaders: true, legacyHeaders: false });
 app.use('/api/', limiter);
 
 // Helper to create client with provided key (BYOK) or server key
@@ -23,14 +23,41 @@ const serverKey = process.env.OPENAI_API_KEY;
 if (!serverKey) console.warn('[server] OPENAI_API_KEY is not set');
 
 // Simple per-IP daily counter (memory). Replace with Redis for multi-instance.
-const FREE_TIER_DAILY = Number(process.env.FREE_TIER_DAILY || 15);
+const FREE_TIER_DAILY = Number(process.env.FREE_TIER_DAILY || 5);
+const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT || 100);
 const dailyCounters = new Map();
+let globalDailyCount = 0;
+let globalDailyDate = new Date().toISOString().slice(0,10);
+
 function checkAndIncrementDaily(ip){
   const today = new Date().toISOString().slice(0,10);
+  
+  // Reset global counter if new day
+  if (globalDailyDate !== today) {
+    globalDailyCount = 0;
+    globalDailyDate = today;
+  }
+  
+  // Check global daily limit first
+  if (globalDailyCount >= GLOBAL_DAILY_LIMIT) {
+    console.log(`[server] Global daily limit reached: ${globalDailyCount}/${GLOBAL_DAILY_LIMIT}`);
+    return { allowed: false, reason: 'global' };
+  }
+  
+  // Check per-IP limit
   const cur = dailyCounters.get(ip);
-  if (!cur || cur.day !== today){ dailyCounters.set(ip, { day: today, count: 1 }); return true; }
-  if (cur.count >= FREE_TIER_DAILY) return false;
-  cur.count += 1; return true;
+  if (!cur || cur.day !== today){ 
+    dailyCounters.set(ip, { day: today, count: 1 }); 
+    globalDailyCount += 1;
+    return { allowed: true, reason: 'ip' };
+  }
+  if (cur.count >= FREE_TIER_DAILY) {
+    return { allowed: false, reason: 'ip' };
+  }
+  
+  cur.count += 1;
+  globalDailyCount += 1;
+  return { allowed: true, reason: 'ip' };
 }
 
 const ALLOWED_MODELS = new Set((process.env.ALLOWED_MODELS || 'gpt-4o-mini').split(',').map(s=>s.trim()).filter(Boolean));
@@ -60,8 +87,14 @@ app.post('/api/story', async (req, res) => {
     const openai = createClient(serverKey);
 
     // Daily quota for free tier
-    const ok = checkAndIncrementDaily(req.ip || req.headers['x-forwarded-for'] || 'anon');
-    if (!ok) return res.status(429).json({ error: 'Daily free tier limit reached. Support the project to continue!' });
+    const quotaResult = checkAndIncrementDaily(req.ip || req.headers['x-forwarded-for'] || 'anon');
+    if (!quotaResult.allowed) {
+      if (quotaResult.reason === 'global') {
+        return res.status(429).json({ error: 'Service temporarily unavailable. Daily global limit reached. Please try again tomorrow.' });
+      } else {
+        return res.status(429).json({ error: 'Daily free tier limit reached. Support the project to continue!' });
+      }
+    }
     const userText = raw.trim();
     const isShort = userText.split(/\s+/).length < 12;
     const guidance = `

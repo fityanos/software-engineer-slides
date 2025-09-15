@@ -28,7 +28,7 @@ A modern, AI-powered slide generator that transforms your text into beautiful, a
 - **Keyboard Shortcuts**: Full keyboard navigation support
 - **Presentation Mode**: Fullscreen presentation with auto-advance
 - **Settings Persistence**: Your preferences are saved automatically
-- **Free Tier**: 15 AI-generated slide sets per day
+- **Free Tier**: 5 AI-generated slide sets per day
 
 ## 🚀 Quick Start
 
@@ -151,7 +151,7 @@ Access via the gear icon in the top-right corner:
 
 - **No Data Storage**: Your content is never stored on our servers
 - **API Key Protection**: Server-side API key handling
-- **Rate Limiting**: Prevents abuse and ensures fair usage
+- **Rate Limiting**: Multi-layer protection (per-IP, per-day, and global daily limits)
 - **Input Validation**: All inputs are sanitized and validated
 
 For detailed security information, see [SECURITY.md](./SECURITY.md).
@@ -159,7 +159,9 @@ For detailed security information, see [SECURITY.md](./SECURITY.md).
 ## 💰 Pricing
 
 ### Free Tier
-- 15 AI-generated slide sets per day
+- 5 AI-generated slide sets per day per IP
+- 2 requests per minute per IP
+- Global daily limit: 100 total requests across all users
 - All basic features included
 - No registration required
 
@@ -190,8 +192,9 @@ When you reach the daily limit, you'll see options to:
 ```env
 OPENAI_API_KEY=sk-your-api-key-here
 CORS_ORIGIN=https://yourdomain.com
-RATE_LIMIT_RPM=6
-FREE_TIER_DAILY=15
+RATE_LIMIT_RPM=2
+FREE_TIER_DAILY=5
+GLOBAL_DAILY_LIMIT=100
 ALLOWED_MODELS=gpt-4o-mini
 MAX_RAW_BYTES=8192
 MAX_COMPLETION_TOKENS=600

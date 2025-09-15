@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 // In production, you'd want to use Redis or a database for persistence
 const rateLimitStore = new Map();
 const dailyLimitStore = new Map();
+let globalDailyCount = 0;
+let globalDailyDate = new Date().toISOString().slice(0,10);
 
 function getClientIP(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
@@ -16,11 +18,25 @@ function checkRateLimit(ip) {
   const now = Date.now();
   const minute = Math.floor(now / 60000); // Current minute
   const day = Math.floor(now / 86400000); // Current day
+  const today = new Date().toISOString().slice(0,10);
+  
+  // Reset global counter if new day
+  if (globalDailyDate !== today) {
+    globalDailyCount = 0;
+    globalDailyDate = today;
+  }
+  
+  // Check global daily limit first
+  const GLOBAL_DAILY_LIMIT = parseInt(process.env.GLOBAL_DAILY_LIMIT || '100', 10);
+  if (globalDailyCount >= GLOBAL_DAILY_LIMIT) {
+    console.log(`Global daily limit reached: ${globalDailyCount}/${GLOBAL_DAILY_LIMIT}`);
+    return { allowed: false, reason: 'global' };
+  }
   
   // Per-minute rate limiting
   const minuteKey = `${ip}:${minute}`;
   const minuteCount = rateLimitStore.get(minuteKey) || 0;
-  const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '6', 10);
+  const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '2', 10);
   
   if (minuteCount >= RATE_LIMIT_RPM) {
     return { allowed: false, reason: 'minute' };
@@ -29,7 +45,7 @@ function checkRateLimit(ip) {
   // Daily quota limiting
   const dayKey = `${ip}:${day}`;
   const dayCount = dailyLimitStore.get(dayKey) || 0;
-  const FREE_TIER_DAILY = parseInt(process.env.FREE_TIER_DAILY || '15', 10);
+  const FREE_TIER_DAILY = parseInt(process.env.FREE_TIER_DAILY || '5', 10);
   
   if (dayCount >= FREE_TIER_DAILY) {
     return { allowed: false, reason: 'daily' };
@@ -38,6 +54,7 @@ function checkRateLimit(ip) {
   // Increment counters
   rateLimitStore.set(minuteKey, minuteCount + 1);
   dailyLimitStore.set(dayKey, dayCount + 1);
+  globalDailyCount += 1;
   
   // Clean up old entries (keep only last 2 minutes and 2 days)
   for (const [key] of rateLimitStore) {
@@ -54,7 +71,7 @@ function checkRateLimit(ip) {
     }
   }
   
-  return { allowed: true, minuteCount: minuteCount + 1, dayCount: dayCount + 1 };
+  return { allowed: true, minuteCount: minuteCount + 1, dayCount: dayCount + 1, globalCount: globalDailyCount };
 }
 
 export default async function handler(req, res) {
@@ -99,11 +116,15 @@ export default async function handler(req, res) {
     
     if (!rateLimitResult.allowed) {
       console.log(`Rate limit exceeded for IP ${clientIP}: ${rateLimitResult.reason}`);
-      return res.status(429).json({ 
-        error: rateLimitResult.reason === 'daily' 
-          ? 'Daily limit reached. Please try again tomorrow or consider supporting the project.' 
-          : 'Rate limit exceeded. Please try again later.' 
-      });
+      let errorMessage = 'Rate limit exceeded. Please try again later.';
+      
+      if (rateLimitResult.reason === 'global') {
+        errorMessage = 'Service temporarily unavailable. Daily global limit reached. Please try again tomorrow.';
+      } else if (rateLimitResult.reason === 'daily') {
+        errorMessage = 'Daily limit reached. Please try again tomorrow or consider supporting the project.';
+      }
+      
+      return res.status(429).json({ error: errorMessage });
     }
 
     // Use server's API key only
@@ -144,13 +165,16 @@ export default async function handler(req, res) {
     const out = completion.choices?.[0]?.message?.content?.trim();
     
     // Set rate limit headers
-    const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '6', 10);
-    const FREE_TIER_DAILY = parseInt(process.env.FREE_TIER_DAILY || '15', 10);
+    const RATE_LIMIT_RPM = parseInt(process.env.RATE_LIMIT_RPM || '2', 10);
+    const FREE_TIER_DAILY = parseInt(process.env.FREE_TIER_DAILY || '5', 10);
+    const GLOBAL_DAILY_LIMIT = parseInt(process.env.GLOBAL_DAILY_LIMIT || '100', 10);
     
     res.setHeader('X-RateLimit-Limit-Minute', RATE_LIMIT_RPM);
     res.setHeader('X-RateLimit-Remaining-Minute', Math.max(0, RATE_LIMIT_RPM - rateLimitResult.minuteCount));
     res.setHeader('X-RateLimit-Limit-Daily', FREE_TIER_DAILY);
     res.setHeader('X-RateLimit-Remaining-Daily', Math.max(0, FREE_TIER_DAILY - rateLimitResult.dayCount));
+    res.setHeader('X-RateLimit-Limit-Global', GLOBAL_DAILY_LIMIT);
+    res.setHeader('X-RateLimit-Remaining-Global', Math.max(0, GLOBAL_DAILY_LIMIT - rateLimitResult.globalCount));
     
     res.json({ content: out || '' });
   } catch (err) {
