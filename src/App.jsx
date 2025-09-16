@@ -396,15 +396,19 @@ export default function AnimatedSlidesFromText() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ raw, tone: aiTone, length: aiLength, model: aiModel })
                     });
-                    const data = await res.json();
+                    
                     if (res.status === 429) {
                       // Rate limit exceeded - show donation popup
                       setRateLimitedText(raw); // Store the original text
                       setShowDonationModal(true);
                       // Don't generate fallback slides yet - wait for user to click "Continue with Original Text"
-                    } else {
+                    } else if (res.ok) {
+                      const data = await res.json();
                       const out = data?.content?.trim();
                       if (out) setRaw(out);
+                    } else {
+                      // Handle other error statuses
+                      console.error("API error:", res.status, res.statusText);
                     }
                   } catch (err) {
                     console.error("AI generation failed:", err);
@@ -680,21 +684,6 @@ export default function AnimatedSlidesFromText() {
               <p className="text-sm opacity-80 mb-6">
                 To maintain the service we are limiting the usage. You can come back tomorrow.
               </p>
-              
-              <div className="space-y-3">
-                <a 
-                  href="https://github.com/sponsors/fityanos" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-                >
-                  💖 $5 GitHub Sponsoring
-                </a>
-              </div>
-              
-              <p className="text-xs opacity-60 mt-4">
-                Your support helps keep this service free for everyone!
-              </p>
             </div>
           </div>
         </div>
@@ -740,6 +729,24 @@ export default function AnimatedSlidesFromText() {
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <div className="mt-16 pt-8 pb-6">
+        <hr className={`border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} mb-6`} />
+        <div className="text-center -mt-2">
+          <span className="text-sm text-gray-400 font-['Cairo']">
+            Created by{' '}
+            <a 
+              href="https://fityanos.github.io/anasfitiani/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-300 hover:text-gray-200 transition-colors"
+            >
+              fityanos
+            </a>
+          </span>
+        </div>
+      </div>
 
     </div>
   );

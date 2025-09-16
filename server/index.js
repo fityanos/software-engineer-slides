@@ -49,15 +49,15 @@ function checkAndIncrementDaily(ip){
   if (!cur || cur.day !== today){ 
     dailyCounters.set(ip, { day: today, count: 1 }); 
     globalDailyCount += 1;
-    return { allowed: true, reason: 'ip' };
+    return { allowed: true, reason: 'ip', count: 1, globalCount: globalDailyCount };
   }
   if (cur.count >= FREE_TIER_DAILY) {
-    return { allowed: false, reason: 'ip' };
+    return { allowed: false, reason: 'ip', count: cur.count, globalCount: globalDailyCount };
   }
   
   cur.count += 1;
   globalDailyCount += 1;
-  return { allowed: true, reason: 'ip' };
+  return { allowed: true, reason: 'ip', count: cur.count, globalCount: globalDailyCount };
 }
 
 const ALLOWED_MODELS = new Set((process.env.ALLOWED_MODELS || 'gpt-4o-mini').split(',').map(s=>s.trim()).filter(Boolean));
@@ -148,6 +148,15 @@ Use the selected TONE if provided; otherwise default to professional & concise. 
       max_completion_tokens: MAX_COMPLETION_TOKENS,
     });
     const out = completion.choices?.[0]?.message?.content?.trim();
+    
+    // Set rate limit headers
+    res.setHeader('X-RateLimit-Limit-Minute', Number(process.env.RATE_LIMIT_RPM || 2));
+    res.setHeader('X-RateLimit-Remaining-Minute', Math.max(0, Number(process.env.RATE_LIMIT_RPM || 2) - 1)); // Approximate
+    res.setHeader('X-RateLimit-Limit-Daily', FREE_TIER_DAILY);
+    res.setHeader('X-RateLimit-Remaining-Daily', Math.max(0, FREE_TIER_DAILY - quotaResult.count));
+    res.setHeader('X-RateLimit-Limit-Global', GLOBAL_DAILY_LIMIT);
+    res.setHeader('X-RateLimit-Remaining-Global', Math.max(0, GLOBAL_DAILY_LIMIT - globalDailyCount));
+    
     res.json({ content: out || '' });
   } catch (err) {
     const msg = (err && err.message) || 'Failed to generate story';
