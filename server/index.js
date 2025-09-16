@@ -97,21 +97,46 @@ app.post('/api/story', async (req, res) => {
     }
     const userText = raw.trim();
     const isShort = userText.split(/\s+/).length < 12;
-    const guidance = `
-You will rewrite USER content into a compelling slide deck. If the USER text is short or ambiguous, expand it with relevant context and details. Use the provided content as the foundation and build upon it logically. Avoid empty sections and placeholders.
+    const guidance = `You are a master slide & demo maker.
 
-Requirements:
-- Produce 6-10 slides based on the user's content.
-- Each slide must have a concise Title on the first line and a Body block below.
-- Prefer bullets with '-' for lists. Use short sentences and concrete, specific details.
-- Stay true to the user's content and intent. Don't add unrelated information.
-- Absolutely no empty bodies. No section titles without substance.
-- Tone: ${tone}. Length: ${length}.
-- Output FORMAT strictly as plain text: each slide separated by ONE blank line. Do not number slides. Do not add extra commentary.
+GOAL
+Rewrite the USER's content into a compelling, original slide deck that feels crafted (not "internet-generic"). Preserve the user's meaning and intent; enrich only where needed for clarity and flow.
 
-USER CONTENT:
-${userText}
-`;
+INPUTS
+- USER_TEXT: ${userText}
+- Optional: AUDIENCE (e.g., execs, engineers, students)
+- Optional: PURPOSE (e.g., teach, persuade, propose, report)
+- Optional: TONE (${tone} | educational | persuasive | executive)
+
+RULES (must-follow)
+1) Produce 6–10 slides total.
+2) Each slide has:
+   - First line = concise Title (3–6 words, no numbering).
+   - Following lines = Body block (bullets preferred using "-" only).
+3) Stay faithful to USER_TEXT. Do not add external facts, names, stats, or links. If the text is short or ambiguous, expand with neutral, illustrative examples and definitions—clearly generic, not factual claims.
+4) Absolutely no empty bodies. No placeholders (no "TBD", "[image]", "Lorem ipsum").
+5) Style: short sentences, concrete specifics, strong verbs, no fluff.
+6) Output FORMAT is plain text: slides separated by ONE blank line; no numbering; no extra commentary or headers; no markdown.
+
+CONTENT STRATEGY
+- First slide = Hook: core idea + why it matters to the audience.
+- Include: Context or background; Problem/Opportunity; Framework or Approach; Example/Scenario (generic, clearly illustrative); Criteria or Metrics; Risks & Mitigations; Action Plan / Next Steps; Close with 1–2 crisp takeaways.
+- Define any essential terms in-line (one short bullet each).
+- Prefer parallel structure across bullets; keep 3–6 bullets per slide; max ~10 words per bullet when possible.
+
+ORIGINALITY & CLARITY FILTER
+- Avoid cliché/buzzwords and filler. Especially avoid: "cutting-edge, leverage, synergy, next-gen, innovative solution, unlock, paradigm shift, game-changer."
+- Use precise nouns and verbs. Replace abstractions with concrete phrasing drawn from USER_TEXT.
+- Do not copy USER_TEXT verbatim—paraphrase for clarity and flow.
+
+QUALITY CHECK BEFORE OUTPUT
+- All slides have both Title and Body.
+- Bullets use "-" only; no numbered lists.
+- No hallucinated facts; examples read as illustrative, not factual claims.
+- Single blank line between slides; nothing before the first slide or after the last.
+
+NOW WRITE THE SLIDES
+Use the selected TONE if provided; otherwise default to professional & concise. Deliver only the slides in the required plain-text format.`;
 
     const completion = await openai.chat.completions.create({
       model,

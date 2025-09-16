@@ -365,7 +365,7 @@ export default function AnimatedSlidesFromText() {
           </motion.h1>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className={`rounded-2xl border ${borderClass} ${cardClass} p-4 flex flex-col gap-4`}>
             <div className="flex justify-between items-start mb-2">
               <label className="text-sm opacity-80 flex-1">Paste your text or context here, I'll auto-chunk by length/sentences with AI touch. Feel free to modify later</label>
@@ -464,7 +464,7 @@ export default function AnimatedSlidesFromText() {
         </div>
 
         {total > 1 && (
-          <div className="mt-12">
+          <div className="mt-16">
             <button 
               onClick={() => setSlidesExpanded(!slidesExpanded)}
               className="flex items-center gap-2 text-sm mb-3 opacity-70 hover:opacity-100 transition-opacity"
